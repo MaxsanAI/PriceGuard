@@ -1,5 +1,5 @@
 import { BarcodeScanner } from '@capacitor-community/barcode-scanner';
-
+BarcodeScanner.prepare();
 const scanButton = document.getElementById('scan-button');
 const resultDiv = document.getElementById('result');
 const appDiv = document.getElementById('app');
