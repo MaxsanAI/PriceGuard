@@ -1,41 +1,29 @@
-import { BarcodeScanner } from '@capacitor-community/barcode-scanner';
-BarcodeScanner.prepare();
+import { BarcodeScanner } from '@capacitor-mlkit/barcode-scanning';
+import { Geolocation } from '@capacitor/geolocation';
+
 const scanButton = document.getElementById('scan-button');
-const resultDiv = document.getElementById('result');
-const appDiv = document.getElementById('app');
 
 const startScan = async () => {
-    try {
-        // 1. Check permissions (force: true triggers the request dialog)
-        const status = await BarcodeScanner.checkPermission({ force: true });
+    // 1. Traži dozvolu za kameru
+    const { camera } = await BarcodeScanner.requestPermissions();
+    if (camera !== 'granted') {
+        alert('Dozvola za kameru je neophodna!');
+        return;
+    }
 
-        if (status.granted) {
-            // Permission granted, prepare screen
-            BarcodeScanner.hideBackground();
-            document.querySelector('body').style.backgroundColor = 'transparent';
-            appDiv.style.display = 'none';
+    // 2. Traži dozvolu za lokaciju
+    const status = await Geolocation.requestPermissions();
+    if (status.location !== 'granted') {
+        alert('Dozvola za lokaciju je neophodna!');
+        return;
+    }
 
-            // Start the scanner
-            const result = await BarcodeScanner.startScan();
+    // Ako je sve odobreno, pokreni skener i uzmi lokaciju
+    const { barcodes } = await BarcodeScanner.scan();
+    const coordinates = await Geolocation.getCurrentPosition();
 
-            // Scanning finished or canceled, restore UI
-            BarcodeScanner.showBackground();
-            document.querySelector('body').style.backgroundColor = '#121212';
-            appDiv.style.display = 'block';
-
-            if (result.hasContent) {
-                resultDiv.innerText = "Scanned: " + result.content;
-            }
-        } else if (status.denied) {
-            alert("Camera permission denied! Go to Settings -> Apps -> PriceGuard -> Permissions and enable Camera.");
-        }
-    } catch (err) {
-        console.error("Scanner error: ", err);
-        // Ensure UI is restored if an error occurs
-        BarcodeScanner.showBackground();
-        document.querySelector('body').style.backgroundColor = '#121212';
-        appDiv.style.display = 'block';
-        alert("An error occurred while accessing the camera.");
+    if (barcodes.length > 0) {
+        alert("Skenirano: " + barcodes[0].rawValue + "\nLokacija: " + coordinates.coords.latitude + ", " + coordinates.coords.longitude);
     }
 };
 
