@@ -2,30 +2,40 @@ import { BarcodeScanner } from '@capacitor-community/barcode-scanner';
 
 const scanButton = document.getElementById('scan-button');
 const resultDiv = document.getElementById('result');
+const appDiv = document.getElementById('app');
 
 const startScan = async () => {
-    // 1. Provera dozvola
-    const status = await BarcodeScanner.checkPermission({ force: true });
-    
-    if (status.granted) {
-        // 2. Priprema ekrana (providnost da se vidi kamera)
-        BarcodeScanner.hideBackground();
-        document.querySelector('body').style.backgroundColor = 'transparent';
-        document.getElementById('app').style.display = 'none';
+    try {
+        // 1. Check permissions (force: true triggers the request dialog)
+        const status = await BarcodeScanner.checkPermission({ force: true });
 
-        // 3. Pokretanje kamere
-        const result = await BarcodeScanner.startScan();
-        
-        // 4. Vraćanje UI-a nakon skeniranja
-        document.querySelector('body').style.backgroundColor = '#121212';
-        document.getElementById('app').style.display = 'block';
+        if (status.granted) {
+            // Permission granted, prepare screen
+            BarcodeScanner.hideBackground();
+            document.querySelector('body').style.backgroundColor = 'transparent';
+            appDiv.style.display = 'none';
 
-        if (result.hasContent) {
-            resultDiv.innerText = "Scanned Code: " + result.content;
-            // OVDE ČEKAŠ API POZIV
+            // Start the scanner
+            const result = await BarcodeScanner.startScan();
+
+            // Scanning finished or canceled, restore UI
+            BarcodeScanner.showBackground();
+            document.querySelector('body').style.backgroundColor = '#121212';
+            appDiv.style.display = 'block';
+
+            if (result.hasContent) {
+                resultDiv.innerText = "Scanned: " + result.content;
+            }
+        } else if (status.denied) {
+            alert("Camera permission denied! Go to Settings -> Apps -> PriceGuard -> Permissions and enable Camera.");
         }
-    } else {
-        alert("Camera permission denied!");
+    } catch (err) {
+        console.error("Scanner error: ", err);
+        // Ensure UI is restored if an error occurs
+        BarcodeScanner.showBackground();
+        document.querySelector('body').style.backgroundColor = '#121212';
+        appDiv.style.display = 'block';
+        alert("An error occurred while accessing the camera.");
     }
 };
 
